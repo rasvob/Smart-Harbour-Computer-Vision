@@ -1,0 +1,4 @@
+yolo-test-model-on-video:
+  input-file: "/home/fei/svo0175/Documents/smart-harbour-vision/common/data/cfg_raw_cam_02_fhd_h265_20230610T091000.mkv"
+  yolo-model: "/home/fei/svo0175/Documents/smart-harbour-vision/object-detection/models/best.onnx"
+  video-width: 1920

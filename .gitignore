@@ -160,3 +160,8 @@ cython_debug/
 #.idea/
 
 venv/
+runs/
+object-detection/data/*.mkv
+*.onnx
+*.pt
+*.engine
