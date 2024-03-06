@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     model = YOLO(params['yolo-model'], task='detect')
     video_file = params['input-file']
-    results = model(video_file, stream=True, imgsz=params['video-width'], save_txt=True, save_conf=True, save=False, classes=[8], device='cpu')
+    results = model(video_file, stream=True, imgsz=params['video-width'], save_txt=True, save_conf=True, save=False, classes=[8], device=0)
 
     for x in results:
         logger.info(x)

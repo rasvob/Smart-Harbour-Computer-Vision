@@ -1,19 +1,28 @@
 # Use an official Python runtime as the base image
-FROM python:3.11.0-slim-bullseye as builder
+# FROM python:3.11.0-slim-bullseye as builder
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive 
 
 # Set the working directory in the container
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y python3-opencv
+RUN apt-get update && apt-get install -y python3.11 python3-pip python3.11-dev python3.11-venv python3.11-distutils python3-opencv
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
+RUN pip install --upgrade pip
 RUN pip install opencv-python
 
-# Copy the requirements file into the container
+# # Copy the requirements file into the container
 COPY requirements.txt .
 
-# Install the required packages
+RUN pip install --no-cache-dir wheel setuptools
+RUN pip install --no-cache nvidia-tensorrt --index-url https://pypi.ngc.nvidia.com
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code into the container
+# CMD [ "/bin/bash" ]
+
+
+# # Copy the rest of the application code into the container
 COPY . .
 
 RUN rm .env
