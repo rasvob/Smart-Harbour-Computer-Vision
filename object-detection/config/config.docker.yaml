@@ -1,4 +1,4 @@
 yolo-test-model-on-video:
   input-file: "/app/data/cfg_raw_cam_02_fhd_h265_20230610T091000.mkv"
-  yolo-model: "/app/models/best.onnx"
+  yolo-model: "/app/models/yolov8m.onnx"
   video-width: 1920
