@@ -1,0 +1,5 @@
+venv/
+data/
+models/
+config/config.yaml
+config/config.docker.yaml
