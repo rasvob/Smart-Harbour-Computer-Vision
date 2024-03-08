@@ -9,8 +9,6 @@ services:
       - ./config/config.docker.yaml:/app/config/config.yaml
     env_file:
       - .env.docker
-    environment:
-      - CUDA_VISIBLE_DEVICES=1,2
     deploy:
       resources:
         reservations:
