@@ -17,16 +17,15 @@ USER appuser
 
 RUN python -m pip install --user --upgrade pip
 RUN python -m pip install --user opencv-python
+RUN python -m pip install --user --no-cache-dir wheel setuptools
+RUN python -m pip install --user --no-cache-dir tensorrt==8.6.1
 
 # # Copy the requirements file into the container
 COPY requirements.txt .
-
-RUN python -m pip install --user --no-cache-dir wheel setuptools
-RUN python -m pip install --user --no-cache-dir tensorrt==8.6.1
 RUN python -m pip install --user --no-cache-dir -r requirements.txt
 
 # # Copy the rest of the application code into the container
 COPY . .
 
 # Set the command to run when the container starts
-CMD [ "python", "test_model_on_video_file.py" ]
+CMD [ "python", "-m", "uvicorn", "main:app", "--reload", "--host", "0.0.0.0", "--port", "8013"]

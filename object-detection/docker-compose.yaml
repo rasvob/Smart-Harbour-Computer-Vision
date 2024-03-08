@@ -1,7 +1,11 @@
 version: '3'
 services:
   app:
-    image: object-detection
+    # image: object-detection
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # If need to bash into container, uncomment the following line - then run `docker exec -it <object-detection-app-1> /bin/bash`
     # command: tail -f /dev/null
     volumes:
       - ./data:/app/data
@@ -9,6 +13,10 @@ services:
       - ./config/config.docker.yaml:/app/config/config.yaml
     env_file:
       - .env.docker
+    ports:
+      - 8013:8013
+    environment:
+      - DEBUG=1
     deploy:
       resources:
         reservations:
