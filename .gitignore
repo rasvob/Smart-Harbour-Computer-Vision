@@ -161,3 +161,8 @@ cython_debug/
 
 venv/
 data_test/
+runs/
+object-detection/data/*.mkv
+*.onnx
+*.pt
+*.engine
