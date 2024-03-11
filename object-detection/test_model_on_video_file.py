@@ -1,17 +1,15 @@
 import os
 from ultralytics import YOLO
-from config.config_loader import load_config
+from config.config_loader import ConfigLoader
 from app_log.app_logger import AppLogger
 
 logger = AppLogger(__name__).get_logger()
 
 if __name__ == "__main__":
     config_path = os.environ.get("CONFIG_PATH")
-    config = load_config(config_path)
-
-    config_section = 'yolo-test-model-on-video'
-    params = config[config_section]
-    
+    config_section = os.environ.get("CONFIG_SECTION")
+    config = ConfigLoader(config_path, config_section)
+    params = config.get_params()
 
     model = YOLO(params['yolo-model'], task='detect')
     video_file = params['input-file']

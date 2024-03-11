@@ -1,25 +1,46 @@
 import os
-from fastapi import FastAPI
+import io
+import logging
+import base64
+from fastapi import FastAPI, HTTPException
+from PIL import Image
 from app_log import AppLogger
-from services import YoloDetector
-from config import load_config
+from services import YoloDetectorService
+from dto import ImageModel
+from config import ConfigLoader
+from contextlib import asynccontextmanager
 
-logger = AppLogger(__name__).get_logger()
-app = FastAPI()
+logger = AppLogger(__name__, logging.DEBUG).get_logger()
+app_services = {
+    'YoloDetectorService': None,
+    'ConfigLoader': None
+}
 
-config_path = os.environ.get("CONFIG_PATH")
-config = load_config(config_path)
-config_section = 'yolo-test-model-on-video'
-params = config[config_section]
-model = YoloDetector(params['yolo-model'], params['video-width'], params['device'], [8])
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    config_path = os.environ.get("CONFIG_PATH")
+    config_section = os.environ.get("CONFIG_SECTION")
+    app_services["ConfigLoader"] = ConfigLoader(config_path, config_section)
+    params = app_services["ConfigLoader"].get_params()
+    app_services["YoloDetectorService"] = YoloDetectorService(params['yolo-model'], params['video-width'], params['device'], [8])
+    yield
+    # Clean up the ML models and release the resources
+
+
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World 2"}
+    return {"Message": "Yolo Object Detection Service is running!"}
 
-# Add POST route which accept image and return the detected objects in JSON
-# The image should be a base64 encoded string
 @app.post("/detect")
-def detect_objects(image:str):
-    logger.info("Detecting objects")
-    return model.detect(image)
+async def detect_objects(data: ImageModel):
+    try:
+        # Decode the base64 string
+        image_data = base64.b64decode(data.image)
+        # Convert the bytes to a PIL Image object
+        image = Image.open(io.BytesIO(image_data))
+        results = app_services["YoloDetectorService"].detect(image)
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid base64 image data")

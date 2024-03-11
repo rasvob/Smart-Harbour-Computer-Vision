@@ -1,1 +1,1 @@
-from .yolo_service import YoloDetector
+from .yolo_service import YoloDetectorService

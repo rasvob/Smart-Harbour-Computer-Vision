@@ -163,6 +163,7 @@ venv/
 data_test/
 runs/
 object-detection/data/*.mkv
+object-detection/base64frames.txt
 *.onnx
 *.pt
 *.engine
