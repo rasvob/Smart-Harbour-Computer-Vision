@@ -26,7 +26,6 @@ async def lifespan(app: FastAPI):
     yield
     # Clean up the ML models and release the resources
 
-
 app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
@@ -43,4 +42,5 @@ async def detect_objects(data: ImageModel):
         results = app_services["YoloDetectorService"].detect(image)
         return results
     except Exception as e:
+        logger.exception(e)
         raise HTTPException(status_code=400, detail="Invalid base64 image data")

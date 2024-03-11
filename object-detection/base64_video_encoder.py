@@ -45,12 +45,14 @@ if __name__ == "__main__":
     params = config.get_params()
 
     video = VideoStream(params['input-file'])
-    limit = 2
-    with open('base64frames.txt', 'wt') as f:
+    limit = 1205
+    # 0 boats at 0, 1 boat at 1164, 2 boats at 1205
+    with open('base64frames_two.txt', 'wt') as f:
         for i, frame in enumerate(video):
-            ret, buffer = cv2.imencode('.jpg', frame)
-            jpg_as_text = base64.b64encode(buffer)
-            f.write(jpg_as_text.decode('utf-8') + '\n\n')
-
             if i == limit:
+                ret, buffer = cv2.imencode('.jpg', frame)
+                jpg_as_text = base64.b64encode(buffer)
+                f.write(jpg_as_text.decode('utf-8'))
                 break
+            if i % 100 == 0:
+                print(f"Processing frame {i}")

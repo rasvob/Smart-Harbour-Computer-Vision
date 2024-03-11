@@ -1,7 +1,7 @@
 import logging
 
 class AppLogger:
-    def __init__(self, name, level=logging.INFO):
+    def __init__(self, name, level=logging.DEBUG):
         self.logger = logging.getLogger(name)
         self.logger.setLevel(level)
         handler = logging.StreamHandler()
