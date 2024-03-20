@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start the server in the background
-python src/flask_api.py &
+python -m uvicorn run:app --host 0.0.0.0 --port 5000 &
 
 # Wait for the server to start
 sleep 30

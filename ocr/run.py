@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 import base64
-import ocr_model
-from dto import ImageModel
+from src.ocr_model import OCRModel
+from src.dto import ImageModel
 from contextlib import asynccontextmanager
 
 app_services = {
@@ -11,7 +11,7 @@ app_services = {
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize the ML models
-    app_services['OCRModel'] = ocr_model.OCRModel()
+    app_services['OCRModel'] = OCRModel()
     yield
     # Clean up the ML models and release the resources
 

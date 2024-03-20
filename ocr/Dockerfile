@@ -14,14 +14,12 @@ RUN apt-get install -y python3-dotenv python3-opencv
 RUN adduser --disabled-password --gecos '' appuser && chown -R appuser:appuser /app
 USER appuser
 
-RUN python -m pip install --user --upgrade pip
-RUN python -m pip install --user opencv-python
-
 # # Copy the requirements file into the container
 COPY requirements.txt .
 
+RUN python -m pip install --user --upgrade pip
+RUN python -m pip install --user opencv-python
 RUN python -m pip install --user --no-cache-dir wheel setuptools
-#RUN python -m pip install --user --no-cache-dir tensorrt==8.6.1
 RUN python -m pip install --user --no-cache-dir -r requirements.txt
 
 # # Copy the rest of the application code into the container

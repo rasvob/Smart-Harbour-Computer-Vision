@@ -1,6 +1,6 @@
 import easyocr
 import time
-import dto
+from . import dto
 
 
 class OCRModel():
