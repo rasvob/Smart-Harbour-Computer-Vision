@@ -1,12 +1,11 @@
 import easyocr
 import time
+import dto
+
 
 class OCRModel():
     def __init__(self) -> None:
         self.reader = easyocr.Reader(['cs', 'en'], gpu=True)
-
-    def readtext(self, image):
-        return self.reader.readtext(image)
 
     def readtext_postprocess(self, image):
         start = time.time()
@@ -16,4 +15,7 @@ class OCRModel():
             if ocr_result[2] > 0.1:
                 text_to_concat.append(ocr_result[1])
         print(f'OCR took {time.time() - start:.2f}s')
-        return ''.join(text_to_concat), results
+        return dto.OCRResultModel(text=''.join(text_to_concat), ocr_recognitions=results)
+
+    def readtext(self, image):
+        return self.reader.readtext(image)
