@@ -34,7 +34,7 @@ def send_frame(image, endpoint):
     return response.text
 
 if __name__ == "__main__":
-    load_dotenv('.env.local')
+    load_dotenv()
     params = {
         'input-file': os.environ.get("INPUT_FILE"),
         'video-width': int(os.environ.get("VIDEO_WIDTH")),
