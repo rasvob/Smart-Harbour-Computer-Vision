@@ -2,30 +2,28 @@ import os
 import io
 import logging
 import base64
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, APIRouter, Request
 from PIL import Image
 from app_log import AppLogger
 from services import YoloDetectorService
 from dto import ImageModel
-from config import ConfigLoader, AppConfig
+from config import AppConfig
 from contextlib import asynccontextmanager
+from routers import api_v1_router
 
 logger = AppLogger(__name__, logging.DEBUG).get_logger()
 app_config = AppConfig()
 
-app_services = {
-    'YoloDetectorService': None
-}
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.debug(app_config.model_dump())
-    app_services["YoloDetectorService"] = YoloDetectorService(app_config.yolo_model, app_config.video_width, app_config.device, app_config.target_classes)
-    app_services["YoloDetectorService"].model_init()
+    app.state.yolo_detector_service = YoloDetectorService(app_config.yolo_model, app_config.video_width, app_config.device, app_config.target_classes)
+    app.state.yolo_detector_service.model_init()
     yield
     # Clean up the ML models and release the resources
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(api_v1_router)
 
 @app.get("/")
 def read_root():
@@ -39,15 +37,4 @@ def health_check():
 def get_config():
     return app_config.model_dump()
 
-@app.post("/detect")
-async def detect_objects(data: ImageModel):
-    try:
-        # Decode the base64 string
-        image_data = base64.b64decode(data.image)
-        # Convert the bytes to a PIL Image object
-        image = Image.open(io.BytesIO(image_data))
-        results = app_services["YoloDetectorService"].detect(image)
-        return results
-    except Exception as e:
-        logger.exception(e)
-        raise HTTPException(status_code=400, detail="Invalid base64 image data")
+
