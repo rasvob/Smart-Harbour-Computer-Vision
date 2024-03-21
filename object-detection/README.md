@@ -1,5 +1,8 @@
 # YOLOv8
 
+## TODO:
+* Create docker container for exporting model into TensorRT
+
 # Models tested on RTX 3090 24GB and 4080 16GB
 
 | Model     | VRAM   | No boat (ms) | Boat (ms) |
