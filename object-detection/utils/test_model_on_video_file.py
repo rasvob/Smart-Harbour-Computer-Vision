@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 if __name__ == "__main__":
-    load_dotenv('.env.local')
+    load_dotenv()
     params = {
         'yolo-model': os.environ.get("YOLO_MODEL"),
         'input-file': os.environ.get("INPUT_FILE"),

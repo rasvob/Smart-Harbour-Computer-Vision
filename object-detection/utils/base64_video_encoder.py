@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from video_stream import VideoStream
 
 if __name__ == "__main__":
-    load_dotenv('.env.local')
+    load_dotenv()
     params = {
         'yolo-model': os.environ.get("YOLO_MODEL"),
         'input-file': os.environ.get("INPUT_FILE"),
