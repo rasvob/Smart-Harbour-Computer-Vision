@@ -19,3 +19,7 @@ class YoloDetectorService:
         boxes = [x.boxes.data.cpu().numpy() for x in results][0]
         res = DetectionModel(boats_detected=len(boxes), detection_boxes=boxes)
         return res
+    
+    def model_init(self) -> List[dict]:
+        img = Image.new('RGB', (self.video_width, 1080), color = (0, 0, 0))
+        return self.detect(img)
