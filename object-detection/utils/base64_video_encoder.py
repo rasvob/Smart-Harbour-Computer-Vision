@@ -2,8 +2,6 @@ import cv2
 import os
 import base64
 from dotenv import load_dotenv
-from config.config_loader import ConfigLoader
-from app_log.app_logger import AppLogger
 
 class VideoStream():
     def __init__(self, video_name:str):
@@ -38,11 +36,13 @@ class VideoStream():
         self.cap.release()
 
 if __name__ == "__main__":
-    load_dotenv()
-    config_path = os.environ.get("CONFIG_PATH")
-    config_section = os.environ.get("CONFIG_SECTION")
-    config = ConfigLoader(config_path, config_section)
-    params = config.get_params()
+    load_dotenv('.env.local')
+    params = {
+        'yolo-model': os.environ.get("YOLO_MODEL"),
+        'input-file': os.environ.get("INPUT_FILE"),
+        'video-width': int(os.environ.get("VIDEO_WIDTH")),
+        'device': os.environ.get("DEVICE")
+    }
 
     video = VideoStream(params['input-file'])
     limit = 1205

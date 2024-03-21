@@ -5,7 +5,3 @@ config/config.yaml
 config/config.docker.yaml
 docker-compose.yaml
 Dockerfile
-base64frames.txt
-base64frames_zero.txt
-base64frames_two.txt
-base64_video_encoder.py

@@ -1,17 +1,19 @@
 import os
 from dotenv import load_dotenv
 from ultralytics import YOLO
-from config.config_loader import ConfigLoader
-from app_log.app_logger import AppLogger
+import logging
 
-logger = AppLogger(__name__).get_logger()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 if __name__ == "__main__":
-    load_dotenv()
-    config_path = os.environ.get("CONFIG_PATH")
-    config_section = os.environ.get("CONFIG_SECTION")
-    config = ConfigLoader(config_path, config_section)
-    params = config.get_params()
+    load_dotenv('.env.local')
+    params = {
+        'yolo-model': os.environ.get("YOLO_MODEL"),
+        'input-file': os.environ.get("INPUT_FILE"),
+        'video-width': int(os.environ.get("VIDEO_WIDTH")),
+        'device': os.environ.get("DEVICE")
+    }
 
     model = YOLO(params['yolo-model'], task='detect')
     video_file = params['input-file']

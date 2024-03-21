@@ -25,7 +25,7 @@ COPY requirements.txt .
 RUN python -m pip install --user --no-cache-dir -r requirements.txt
 
 # # Copy the rest of the application code into the container
-COPY . .
+COPY /app /app
 
 # Set the command to run when the container starts
 CMD [ "python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8013"]
