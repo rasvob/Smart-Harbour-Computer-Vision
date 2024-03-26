@@ -33,8 +33,4 @@ def read_root():
 def health_check():
     return {"Status": "Healthy"}
 
-@app.get("/config")
-def get_config():
-    return app_config.model_dump()
-
 

@@ -26,9 +26,9 @@ def measure_time(func):
     return wrapper
 
 @measure_time
-def send_frame(image, endpoint):
+def send_frame(image, endpoint, api_key):
     encoded_image = base64.b64encode(image).decode('utf-8')
-    headers = {'Content-Type': 'application/json'}
+    headers = {'Content-Type': 'application/json', 'x-api-key': api_key}
     data = {'image': encoded_image}
     response = requests.post(endpoint, headers=headers, data=json.dumps(data))
     return response.text
@@ -39,11 +39,12 @@ if __name__ == "__main__":
         'input-file': os.environ.get("INPUT_FILE"),
         'video-width': int(os.environ.get("VIDEO_WIDTH")),
         'api-endpoint': os.environ.get("ENDPOINT"),
+        'api-key': os.environ.get("API_KEY"),
     }
 
     video = VideoStream(params['input-file'])
     for frame in tqdm(video, total=len(video)):
         ret, buffer = cv2.imencode('.jpg', frame)
-        res = send_frame(buffer, params['api-endpoint'])
+        res = send_frame(buffer, params['api-endpoint'], params['api-key'])
 
     print(f'Average time: {sum(times) / len(times)} ms')
