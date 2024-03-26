@@ -8,9 +8,12 @@ import time
 from tqdm import tqdm
 from dotenv import load_dotenv
 from video_stream import VideoStream
+import urllib3
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+urllib3.disable_warnings()
 times = []
 
 # Create decorator for measuring time in miliseconds, store times in array and return average time
@@ -26,11 +29,11 @@ def measure_time(func):
     return wrapper
 
 @measure_time
-def send_frame(image, endpoint, api_key):
+def send_frame(image, endpoint, api_key, cert_path):
     encoded_image = base64.b64encode(image).decode('utf-8')
     headers = {'Content-Type': 'application/json', 'x-api-key': api_key}
     data = {'image': encoded_image}
-    response = requests.post(endpoint, headers=headers, data=json.dumps(data))
+    response = requests.post(endpoint, headers=headers, data=json.dumps(data), verify=False)
     return response.text
 
 if __name__ == "__main__":
@@ -40,11 +43,12 @@ if __name__ == "__main__":
         'video-width': int(os.environ.get("VIDEO_WIDTH")),
         'api-endpoint': os.environ.get("ENDPOINT"),
         'api-key': os.environ.get("API_KEY"),
+        'cert': os.environ.get("CERT")
     }
 
     video = VideoStream(params['input-file'])
     for frame in tqdm(video, total=len(video)):
         ret, buffer = cv2.imencode('.jpg', frame)
-        res = send_frame(buffer, params['api-endpoint'], params['api-key'])
+        res = send_frame(buffer, params['api-endpoint'], params['api-key'], params['cert'])
 
     print(f'Average time: {sum(times) / len(times)} ms')
