@@ -1,6 +1,6 @@
 venv/
-data/
-models/
+# data/
+# models/
 config/config.yaml
 config/config.docker.yaml
 docker-compose.yaml

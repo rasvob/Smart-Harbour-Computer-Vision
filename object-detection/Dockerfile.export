@@ -1,0 +1,8 @@
+FROM petrov-rtx:base
+RUN mkdir -p /app/models_export
+RUN mkdir -p /app/models
+COPY /models/best.pt /app/models_export/best.pt
+COPY /utils/export_pt_model.py /app/models_export/
+COPY /utils/.env.docker.build /app/models_export/.env
+# RUN chmown -R appuser:appuser /app/models_export
+CMD ["python", "/app/models_export/export_pt_model.py"]
