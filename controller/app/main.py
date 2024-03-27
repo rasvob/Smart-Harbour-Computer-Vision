@@ -7,14 +7,17 @@ import json
 import time
 from tqdm import tqdm
 from dotenv import load_dotenv
-from video_stream import VideoStream
 import urllib3
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(filename)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 urllib3.disable_warnings()
-times = []
 
+times = []
 # Create decorator for measuring time in miliseconds, store times in array and return average time
 def measure_time(func):
     def wrapper(*args, **kwargs):
@@ -28,26 +31,26 @@ def measure_time(func):
     return wrapper
 
 @measure_time
-def send_frame(image, endpoint, api_key, cert_path):
+def send_frame(image, endpoint, api_key):
     encoded_image = base64.b64encode(image).decode('utf-8')
     headers = {'Content-Type': 'application/json', 'x-api-key': api_key}
     data = {'image': encoded_image}
     response = requests.post(endpoint, headers=headers, data=json.dumps(data), verify=False)
     return response.text
 
+def send_health_check(endpoint, api_key):
+    headers = {'Content-Type': 'application/json', 'x-api-key': api_key}
+    response = requests.get(endpoint, verify=False)
+    return response.text
+
 if __name__ == "__main__":
     load_dotenv()
-    params = {
-        'input-file': os.environ.get("INPUT_FILE"),
-        'video-width': int(os.environ.get("VIDEO_WIDTH")),
-        'api-endpoint': os.environ.get("ENDPOINT"),
-        'api-key': os.environ.get("API_KEY"),
-        'cert': os.environ.get("CERT")
-    }
+    logger.info('Starting the application')
+    env_keys = ['YOLO_ENDPOINT', 'OCR_ENDPOINT', 'YOLO_API_KEY', 'OCR_API_KEY', 'YOLO_HEALTH_ENDPOINT']
+    params = {x: os.environ.get(x) for x in env_keys}
+    logger.debug(params)
 
-    video = VideoStream(params['input-file'])
-    for frame in tqdm(video, total=len(video)):
-        ret, buffer = cv2.imencode('.jpg', frame)
-        res = send_frame(buffer, params['api-endpoint'], params['api-key'], params['cert'])
+    logger.info('Sending health check to YOLO')
+    res = send_health_check(params['YOLO_HEALTH_ENDPOINT'], params['YOLO_API_KEY'])
+    logger.debug(res)
 
-    print(f'Average time: {sum(times) / len(times)} ms')

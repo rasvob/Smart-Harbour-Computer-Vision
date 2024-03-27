@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      tags:
+        - "rtx-controller:1.0.0"
+    # If need to bash into container, uncomment the following line - then run `docker exec -it <object-detection-app-1> /bin/bash`
+    env_file:
+      - .env.docker
+    networks:
+      - rtx-net
+    environment:
+      - DEBUG=1
+
+networks:
+  rtx-net:
+    name: rtx-net
+    driver: bridge
+    external: true

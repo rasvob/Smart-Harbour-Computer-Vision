@@ -170,3 +170,4 @@ object-detection/utils/base64frames_two.txt
 *.pt
 *.engine
 api_keys.json
+.vscode/
