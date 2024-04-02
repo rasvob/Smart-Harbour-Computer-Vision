@@ -1,0 +1,21 @@
+[project]
+name = "controller"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "Radek Svoboda", email = "rasvob14@gmail.com"},
+]
+dependencies = [
+    "numpy>=1.26.4",
+    "opencv-python>=4.9.0.80",
+    "requests>=2.31.0",
+    "tqdm>=4.66.2",
+    "urllib3>=2.2.1",
+]
+requires-python = "==3.11.*"
+readme = "README.md"
+license = {text = "MIT"}
+
+
+[tool.pdm]
+distribution = false
