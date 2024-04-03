@@ -8,9 +8,10 @@ authors = [
 dependencies = [
     "numpy>=1.26.4",
     "opencv-python>=4.9.0.80",
-    "requests>=2.31.0",
     "tqdm>=4.66.2",
     "urllib3>=2.2.1",
+    "python-dotenv>=1.0.1",
+    "requests>=2.31.0",
 ]
 requires-python = "==3.11.*"
 readme = "README.md"
@@ -19,3 +20,9 @@ license = {text = "MIT"}
 
 [tool.pdm]
 distribution = false
+
+[tool.pdm.scripts]
+start.cmd = "python src/main.py"
+start.env_file = ".env"
+
+start-production.cmd = "python src/main.py"
