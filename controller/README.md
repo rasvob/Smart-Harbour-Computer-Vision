@@ -1,4 +1,7 @@
-# OpenCV control loop
+# OpenCV Control Loop
 
-## TODO:
-* Try PDM https://github.com/pdm-project/pdm
+## Notes
+
+## Dockerfile.dev.stream
+* Set ENV variables `VIDEO_FILE` and `STREAM_URL` according to your config
+* Mount video folder to /app/data

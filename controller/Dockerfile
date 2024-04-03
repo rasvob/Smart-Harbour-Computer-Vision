@@ -4,6 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PDM_CHECK_UPDATE=false
 
 WORKDIR /app
+RUN mkdir -p /app/data
 RUN apt-get update && apt-get install ffmpeg libsm6 libxext6 iputils-ping net-tools iproute2  -y
 RUN pip install -U pip setuptools wheel
 RUN pip install -U pdm

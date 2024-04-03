@@ -1,4 +1,4 @@
-version: '3.8'
+# version: '3.8'
 services:
   app:
     build:
@@ -8,13 +8,58 @@ services:
         - "rtx-controller:1.0.0"
     # If need to bash into container, uncomment the following line - then run `docker exec -it <container> /bin/bash`
     # command: tail -f /dev/null
-    restart: always
+    # restart: always
+    container_name: rtx-controller
     env_file:
       - .env.docker
     networks:
       - rtx-net
     environment:
       - DEBUG=1
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - ffmpeg-streamer
+  
+  ffmpeg-streamer:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev.stream
+      tags:
+        - "rtx-ffmpeg-streamer:1.0.0"
+    # If need to bash into container, uncomment the following line - then run `docker exec -it <container> /bin/bash`
+    # command: tail -f /dev/null
+    container_name: rtx-ffmpeg-streamer
+    profiles:
+      - dev
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - rtx-net
+    depends_on:
+      - rtsp-server
+    environment:
+      - VIDEO_FILE=/app/data/video.mkv
+      - STREAM_URL=rtsp://rtsp-server:8554/mystream
+
+  rtsp-server:
+    image: bluenviron/mediamtx
+    container_name: rtx-rtsp-server
+    profiles:
+      - dev
+    expose:
+      - "1935:1935"
+      - "8554:855"
+      - "8888:8888"
+      - "8889:8889"
+      - "8890:8890/udp"
+      - "8189:8189/udp"
+    environment:
+      - MTX_PROTOCOLS=tcp
+      - MTX_WEBRTCADDITIONALHOSTS=158.196.157.164
+    networks:
+    - rtx-net
 
 networks:
   rtx-net:
