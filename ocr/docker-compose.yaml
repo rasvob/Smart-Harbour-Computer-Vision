@@ -8,14 +8,12 @@ services:
     # If need to bash into container, uncomment the following line - then run `docker exec -it <object-detection-app-1> /bin/bash`
     # command: tail -f /dev/null
     restart: always
-    volumes:
-      - ./data:/app/data
-    env_file:
-      - .env.docker
+    # volumes:
+    #   - ./data:/app/data
     ports:
-      - 8013:8013
+      - 8014:8014
     environment:
-      - DEBUG=1
+      - DEBUG=0
     networks:
       - rtx-net
     deploy:

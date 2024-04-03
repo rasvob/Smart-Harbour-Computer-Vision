@@ -21,6 +21,10 @@ app = FastAPI(lifespan=lifespan)
 def read_root():
     return {'Message': 'OCR module up and running.'}
 
+@app.get("/health")
+def health_check():
+    return {"Status": "Healthy"}
+
 @app.post("/serve")
 async def serve(data: ImageModel):
     try:

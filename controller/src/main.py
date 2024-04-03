@@ -33,24 +33,31 @@ def measure_time(func):
 @measure_time
 def send_frame(image, endpoint, api_key):
     encoded_image = base64.b64encode(image).decode('utf-8')
-    headers = {'Content-Type': 'application/json', 'x-api-key': api_key}
+    headers = {'Content-Type': 'application/json'}
+
+    if api_key:
+        headers['x-api-key'] = api_key
+
     data = {'image': encoded_image}
     response = requests.post(endpoint, headers=headers, data=json.dumps(data), verify=False)
     return response.text
 
 def send_health_check(endpoint, api_key):
-    headers = {'Content-Type': 'application/json', 'x-api-key': api_key}
     response = requests.get(endpoint, verify=False)
     return response.text
 
 if __name__ == "__main__":
     load_dotenv()
     logger.info('Starting the application')
-    env_keys = ['YOLO_ENDPOINT', 'OCR_ENDPOINT', 'YOLO_API_KEY', 'OCR_API_KEY', 'YOLO_HEALTH_ENDPOINT']
+    env_keys = ['YOLO_ENDPOINT', 'OCR_ENDPOINT', 'YOLO_API_KEY', 'OCR_API_KEY', 'YOLO_HEALTH_ENDPOINT', 'OCR_HEALTH_ENDPOINT']
     params = {x: os.environ.get(x) for x in env_keys}
     logger.debug(params)
 
     logger.info('Sending health check to YOLO')
     res = send_health_check(params['YOLO_HEALTH_ENDPOINT'], params['YOLO_API_KEY'])
+    logger.debug(res)
+
+    logger.info('Sending health check to OCR')
+    res = send_health_check(params['OCR_HEALTH_ENDPOINT'], params['OCR_API_KEY'])
     logger.debug(res)
 

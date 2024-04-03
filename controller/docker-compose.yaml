@@ -6,7 +6,9 @@ services:
       dockerfile: Dockerfile
       tags:
         - "rtx-controller:1.0.0"
-    # If need to bash into container, uncomment the following line - then run `docker exec -it <object-detection-app-1> /bin/bash`
+    # If need to bash into container, uncomment the following line - then run `docker exec -it <container> /bin/bash`
+    # command: tail -f /dev/null
+    restart: always
     env_file:
       - .env.docker
     networks:

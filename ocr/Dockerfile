@@ -25,13 +25,9 @@ RUN python -m pip install --user --no-cache-dir -r requirements.txt
 # # Copy the rest of the application code into the container
 COPY . .
 
-
 # Make port available to the world outside this container
-EXPOSE 5000
-
-CMD ["./run.sh"]
-
-
+EXPOSE 8014
+CMD [ "python", "-m", "uvicorn", "run:app", "--host", "0.0.0.0", "--port", "8014", "--ssl-keyfile", "/app/src/certs/key.pem", "--ssl-certfile", "/app/src/certs/cert.pem"]
 # For fixing ImportError: libGL.so.1: cannot open shared object file: No such file or directory
 # RUN apt-get update
 # RUN apt install -y libgl1-mesa-glx libglib2.0-0 libsm6 libxrender1 libxext6
