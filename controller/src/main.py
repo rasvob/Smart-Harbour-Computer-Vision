@@ -100,6 +100,3 @@ if __name__ == "__main__":
 
     grabber = RTSPGrabber(ip='', port=0, channel=0, user='', password='', camera_id=params['CAMERA_ID'], data_dir='/app/data/frames')
     grabber.start_capture(lambda x: process_frame(x, params['YOLO_API_KEY'], params['YOLO_ENDPOINT'], params['OCR_ENDPOINT']), override_url=params['RTSP_ENDPOINT'])
-
-
-
