@@ -69,14 +69,23 @@ def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint):
     yolo_response_json = json.loads(yolo_response.text)
     logger.debug(type(yolo_response_json['boats_detected']))
     if yolo_response_json['boats_detected'] > 0:
-        # TODO: Send frame to OCR endpoint by regions of interest
-        ocr_response = requests.post(ocr_endpoint, headers=headers, data=json.dumps(data), verify=False)
+        sub_frame = crop_frame_with_padding(frame, yolo_response_json['detection_boxes'][0][0], yolo_response_json['detection_boxes'][0][1], yolo_response_json['detection_boxes'][0][2], yolo_response_json['detection_boxes'][0][3])
+        retval, buffer = cv2.imencode('.jpg', sub_frame)
+        data_cropped_image = {'image': base64.b64encode(buffer).decode('utf-8')}
+        ocr_response = requests.post(ocr_endpoint, headers=headers, data=json.dumps(data_cropped_image), verify=False)
         logger.debug(f'OCR response: {ocr_response.text}')
     end = perf_counter_ns()
     diff = (end - start) / 1000000
     logger.debug(f'Frame yolo+ocr time: {diff} ms')
 
     return True
+
+def crop_frame_with_padding(frame, xtl, ytl, xbr, ybr, padding=5):
+    ytl = max(0, ytl-padding)
+    ybr = min(1080, ybr+padding)
+    xtl = max(0, xtl-padding)
+    xbr = min(1920, xbr+padding)
+    return frame[int(ytl):int(ybr), int(xtl):int(xbr)]
 
 def send_health_check(endpoint, api_key):
     response = requests.get(endpoint, verify=False)
