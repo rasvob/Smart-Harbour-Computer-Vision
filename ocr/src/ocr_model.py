@@ -10,6 +10,8 @@ class OCRModel():
     def readtext_postprocess(self, image):
         start = time.time()
         results = self.readtext(image)
+        # convert the results coordinates to int
+        results = [(list(map(lambda x: list(map(round, x)), result[0])), result[1], result[2]) for result in results]
         text_to_concat = list()
         for ocr_result in sorted(results, key=lambda x: x[0][0][0]):
             if ocr_result[2] > 0.1:

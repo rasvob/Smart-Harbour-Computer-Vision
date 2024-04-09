@@ -23,7 +23,8 @@ RUN python -m pip install --user --no-cache-dir wheel setuptools
 RUN python -m pip install --user --no-cache-dir -r requirements.txt
 
 # # Copy the rest of the application code into the container
-COPY . .
+COPY run.py /app/run.py
+COPY /src /app/src
 
 # Make port available to the world outside this container
 EXPOSE 8014
