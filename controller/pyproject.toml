@@ -12,6 +12,8 @@ dependencies = [
     "urllib3>=2.2.1",
     "python-dotenv>=1.0.1",
     "requests>=2.31.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.2.1",
 ]
 requires-python = "==3.11.*"
 readme = "README.md"
