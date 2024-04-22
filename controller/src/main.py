@@ -9,7 +9,7 @@ from src.rtsp_grabber import RTSPGrabber
 from app_log import AppLogger
 from src.settings import app_settings
 from src.api import send_health_check, send_frame, login_to_api
-from src.models import LoginModel, TokenModel, fake_boat_data
+from src.models import LoginModel, TokenModel, BoatPassBase, BoundingBoxCreate, OcrResultBase, fake_boat_data
 import urllib3
 
 logger = AppLogger(__name__, logging._nameToLevel[app_settings.LOG_LEVEL]).get_logger()
@@ -50,11 +50,52 @@ def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint):
     yolo_response_json = json.loads(yolo_response.text)
     logger.debug(type(yolo_response_json['boats_detected']))
     if yolo_response_json['boats_detected'] > 0:
-        sub_frame = crop_frame_with_padding(frame, yolo_response_json['detection_boxes'][0][0], yolo_response_json['detection_boxes'][0][1], yolo_response_json['detection_boxes'][0][2], yolo_response_json['detection_boxes'][0][3])
-        _, buffer = cv2.imencode('.jpg', sub_frame)
-        data_cropped_image = {'image': base64.b64encode(buffer).decode('utf-8')}
-        ocr_response = requests.post(ocr_endpoint, headers=headers, data=json.dumps(data_cropped_image), verify=False)
-        logger.debug(f'OCR response: {ocr_response.text}')
+        ocr_texts = list()
+        yolo_results = list()
+        for i in range(yolo_response_json['boats_detected']):            
+            bounding_box = BoundingBoxCreate(
+                left=yolo_response_json['detection_boxes'][i][0],
+                top=yolo_response_json['detection_boxes'][i][1],
+                right=yolo_response_json['detection_boxes'][i][2],
+                bottom=yolo_response_json['detection_boxes'][i][3],
+                confidence=yolo_response_json['detection_boxes'][i][4],
+                class_identifier=yolo_response_json['detection_boxes'][i][5],
+                ocr_results=[]
+            )
+            
+            sub_frame = crop_frame_with_padding(frame, 
+                                                xtl=bounding_box.left, 
+                                                ytl=bounding_box.top, 
+                                                xbr=bounding_box.right, 
+                                                ybr=bounding_box.bottom)
+            _, buffer = cv2.imencode('.jpg', sub_frame)
+            data_cropped_image = {'image': base64.b64encode(buffer).decode('utf-8')}
+            ocr_response = requests.post(ocr_endpoint, headers=headers, data=json.dumps(data_cropped_image), verify=False)
+            logger.debug(f'OCR response: {ocr_response.text}')
+            ocr_response_json = json.loads(ocr_response.text)
+
+            ocr_recognitions = list()
+            for ocr_partial_result in ocr_response_json['ocr_recognitions']:
+                ocr_recognitions.append(OcrResultBase(
+                    left=ocr_partial_result[0][0][0],
+                    top=ocr_partial_result[0][0][1],
+                    right=ocr_partial_result[0][2][0],
+                    bottom=ocr_partial_result[0][2][1],
+                    text=ocr_partial_result[1],
+                    confidence=ocr_partial_result[2]
+                ))
+            ocr_texts.append(ocr_response_json['text'])
+
+            bounding_box.ocr_results = ocr_recognitions
+            yolo_results.append(bounding_box)
+        
+        ocr_aggregated_text = ''.join(ocr_texts)
+        logger.debug(f'OCR concatanated texts for objects: {ocr_aggregated_text}')
+        logger.debug(f'YOLO results: {yolo_results}')
+        # TODO: push the variables ocr_aggregated_text and yolo_results to the API        
+        # boat_pass = BoatPassBase()
+
+
     end = perf_counter_ns()
     diff = (end - start) / 1000000
     logger.debug(f'Frame yolo+ocr time: {diff} ms')
