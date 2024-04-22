@@ -87,9 +87,9 @@ if __name__ == "__main__":
         logger.error('AUTH ERROR - Token not received')
         exit(1)
 
-    # fake_data = fake_boat_data()
-    # logger.debug(fake_data)
-    # exit(0)
+    fake_data = fake_boat_data()
+    logger.debug(fake_data)
+    exit(0)
 
-    grabber = RTSPGrabber(ip='', port=0, channel=0, user='', password='', camera_id=app_settings.CAMERA_ID, data_dir='/app/data/frames')
-    grabber.start_capture(lambda x: process_frame(x, app_settings.YOLO_API_KEY, app_settings.YOLO_ENDPOINT, app_settings.OCR_ENDPOINT), override_url=app_settings.RTSP_ENDPOINT)
+    # grabber = RTSPGrabber(ip='', port=0, channel=0, user='', password='', camera_id=app_settings.CAMERA_ID, data_dir='/app/data/frames')
+    # grabber.start_capture(lambda x: process_frame(x, app_settings.YOLO_API_KEY, app_settings.YOLO_ENDPOINT, app_settings.OCR_ENDPOINT), override_url=app_settings.RTSP_ENDPOINT)
