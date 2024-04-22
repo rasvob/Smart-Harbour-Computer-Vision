@@ -3,6 +3,7 @@ import logging
 import time
 import base64
 import json
+from typing import Any, Function
 from src.settings import app_settings
 from src.app_log import AppLogger
 from src.models import BoatPassCreate, LoginModel, TokenModel
@@ -10,7 +11,7 @@ from src.models import BoatPassCreate, LoginModel, TokenModel
 logger = AppLogger(__name__, logging._nameToLevel[app_settings.LOG_LEVEL]).get_logger()
 
 times = []
-def measure_time(func):
+def measure_time(func: Function) -> Function:
     def wrapper(*args, **kwargs):
         global times
         start = time.time()
@@ -21,7 +22,7 @@ def measure_time(func):
         return result
     return wrapper
 
-def send_health_check(endpoint):
+def send_health_check(endpoint:str) -> str:
     try:
         response = requests.get(endpoint, verify=False)
     except Exception as e:
@@ -30,7 +31,7 @@ def send_health_check(endpoint):
     return response.text
 
 # @measure_time
-def send_frame(image, endpoint, api_key):
+def send_frame(image: Any, endpoint:str, api_key:str) -> str | None:
     encoded_image = base64.b64encode(image).decode('utf-8')
     headers = {'Content-Type': 'application/json'}
 
@@ -38,8 +39,13 @@ def send_frame(image, endpoint, api_key):
         headers['x-api-key'] = api_key
 
     data = {'image': encoded_image}
-    response = requests.post(endpoint, headers=headers, data=json.dumps(data), verify=False)
-    return response.text
+
+    try:
+        response = requests.post(endpoint, headers=headers, data=json.dumps(data), verify=False)
+        return response.text
+    except Exception as e:
+        logger.error(f'Failed to send frame: {e}')
+        return None
 
 def login_to_api(credentials: LoginModel, endpoint: str) -> TokenModel | None:
     headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}
