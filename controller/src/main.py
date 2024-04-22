@@ -8,7 +8,7 @@ from time import perf_counter_ns
 from src.rtsp_grabber import RTSPGrabber
 from app_log import AppLogger
 from src.settings import app_settings
-from src.api import send_health_check, send_frame, login_to_api
+from src.api import send_health_check, send_frame, login_to_api, send_boat_pass_data    
 from src.models import LoginModel, TokenModel, fake_boat_data
 import urllib3
 
@@ -87,9 +87,11 @@ if __name__ == "__main__":
         logger.error('AUTH ERROR - Token not received')
         exit(1)
 
-    fake_data = fake_boat_data()
-    logger.debug(fake_data)
-    exit(0)
+    # fake_data = fake_boat_data()
+    # logger.debug(fake_data)
+    # ret = send_boat_pass_data(fake_data, f'{app_settings.BACKEND_ENDPOINT_BASE}{app_settings.BACKEND_PATH_BOAT_PASS}', token)
+    # logger.debug(ret)
+    # exit(0)
 
     # grabber = RTSPGrabber(ip='', port=0, channel=0, user='', password='', camera_id=app_settings.CAMERA_ID, data_dir='/app/data/frames')
     # grabber.start_capture(lambda x: process_frame(x, app_settings.YOLO_API_KEY, app_settings.YOLO_ENDPOINT, app_settings.OCR_ENDPOINT), override_url=app_settings.RTSP_ENDPOINT)

@@ -3,7 +3,7 @@ import logging
 import time
 import base64
 import json
-from typing import Any, Function
+from typing import Any, Callable
 from src.settings import app_settings
 from src.app_log import AppLogger
 from src.models import BoatPassCreate, LoginModel, TokenModel
@@ -11,7 +11,7 @@ from src.models import BoatPassCreate, LoginModel, TokenModel
 logger = AppLogger(__name__, logging._nameToLevel[app_settings.LOG_LEVEL]).get_logger()
 
 times = []
-def measure_time(func: Function) -> Function:
+def measure_time(func: Callable) -> Callable:
     def wrapper(*args, **kwargs):
         global times
         start = time.time()
