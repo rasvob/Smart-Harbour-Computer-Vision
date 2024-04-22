@@ -54,41 +54,33 @@ class BoatPassCreate(BoatPassBase):
     bounding_boxes: List[BoundingBoxCreate]
 
 def fake_boat_data():
-    str_data = '{ \
-    "camera_id": 0, \
-    "timestamp": "2024-04-16T13:49:49.466000", \
-    "image_filename": "None Name", \
-    "raw_text": "API TEST", \
-    "detected_identifier": "RAW STRING", \
-    "boat_length": "pod 8m", \
-    "bounding_boxes": [ \
-      { \
-        "left": 0, \
-        "top": 0, \
-        "right": 0, \
-        "bottom": 0, \
-        "confidence": 0, \
-        "class_identifier": 0, \
-        "ocr_results": [ \
-          { \
-            "left": 0, \
-            "top": 0, \
-            "right": 0, \
-            "bottom": 0, \
-            "text": "string", \
-            "confidence": 0, \
-          }, \
-          { \
-            "left": 0, \
-            "top": 0, \
-            "right": 3, \
-            "bottom": 5, \
-            "text": "string", \
-            "confidence": 0, \
-          } \
-        ] \
-      } \
-    ] \
-    }'
+    str_data = """{
+  "camera_id": 0,
+  "timestamp": "2024-04-22T08:10:15.214Z",
+  "image_filename": "FAKE_IMAGE.jpg",
+  "raw_text": "FAKE TEXT",
+  "detected_identifier": "FAKE IDENTIFIER",
+  "boat_length": "pod 8m",
+  "bounding_boxes": [
+    {
+      "left": 0,
+      "top": 0,
+      "right": 0,
+      "bottom": 0,
+      "confidence": 0,
+      "class_identifier": 0,
+      "ocr_results": [
+        {
+          "left": 1,
+          "top": 2,
+          "right": 3,
+          "bottom": 4,
+          "text": "string",
+          "confidence": 0
+        }
+      ]
+    }
+  ]
+}"""
     data = BoatPassCreate.model_validate_json(str_data)
     return data
