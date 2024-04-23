@@ -40,7 +40,7 @@ services:
     depends_on:
       - rtsp-server
     environment:
-      - VIDEO_FILE=/app/data/video.mkv
+      - VIDEO_FILE=/app/data/video_cut.mkv
       - STREAM_URL=rtsp://rtsp-server:8554/mystream
 
   rtsp-server:

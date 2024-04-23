@@ -53,6 +53,13 @@ class BoatPassCreate(BoatPassBase):
 class BoatPassCreate(BoatPassBase):
     bounding_boxes: List[BoundingBoxCreate]
 
+class ImagePayload(BaseModel):
+    image: str
+
+class BoatPassCreatePayload(BaseModel):
+    boat_pass: BoatPassCreate
+    image_data: ImagePayload
+
 def fake_boat_data():
     str_data = """{
   "camera_id": 0,
@@ -82,5 +89,6 @@ def fake_boat_data():
     }
   ]
 }"""
-    data = BoatPassCreate.model_validate_json(str_data)
-    return data
+    boat_pass = BoatPassCreate.model_validate_json(str_data)
+    res = BoatPassCreatePayload(boat_pass=boat_pass, image_data='')
+    return res
