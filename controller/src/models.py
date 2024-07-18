@@ -56,6 +56,9 @@ class BoatPassCreate(BoatPassBase):
 class ImagePayload(BaseModel):
     image: str
 
+class PreviewImagePayload(ImagePayload):
+    camera_id: int
+
 class BoatPassCreatePayload(BaseModel):
     boat_pass: BoatPassCreate
     image_data: ImagePayload

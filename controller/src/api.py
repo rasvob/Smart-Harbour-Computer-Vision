@@ -6,7 +6,8 @@ import json
 from typing import Any, Callable
 from src.settings import app_settings
 from src.app_log import AppLogger
-from src.models import BoatPassCreate, BoatPassCreatePayload, LoginModel, TokenModel
+from src.models import BoatPassCreate, BoatPassCreatePayload, LoginModel, PreviewImagePayload, TokenModel
+from pydantic import BaseModel
 
 logger = AppLogger(__name__, logging._nameToLevel[app_settings.LOG_LEVEL]).get_logger()
 
@@ -62,11 +63,31 @@ def login_to_api(credentials: LoginModel, endpoint: str) -> TokenModel | None:
 
     return TokenModel(**response.json())
 
-def send_boat_pass_data(data: BoatPassCreatePayload, endpoint:str, token: TokenModel) -> requests.Response | None:
+def send_payload_to_rest_api(data: BaseModel, endpoint:str, token: TokenModel, error_text:str) -> requests.Response | None:
     headers = {'Content-Type': 'application/json;charset=UTF-8', 'Authorization': f'{token.token_type} {token.access_token}', 'Accept': 'application/json'}
     try:
         response = requests.post(endpoint, headers=headers, verify=False, data=data.json().encode('utf-8'))
         return response
     except Exception as e:
-        logger.error(f'Failed to send boat pass data: {e}')
+        logger.error(f'{error_text}: {e}')
         return None
+
+def send_boat_pass_data(data: BoatPassCreatePayload, endpoint:str, token: TokenModel) -> requests.Response | None:
+    return send_payload_to_rest_api(data, endpoint, token, 'Failed to send boat pass data')
+    # headers = {'Content-Type': 'application/json;charset=UTF-8', 'Authorization': f'{token.token_type} {token.access_token}', 'Accept': 'application/json'}
+    # try:
+    #     response = requests.post(endpoint, headers=headers, verify=False, data=data.json().encode('utf-8'))
+    #     return response
+    # except Exception as e:
+    #     logger.error(f'Failed to send boat pass data: {e}')
+    #     return None
+    
+def send_camera_preview(data: PreviewImagePayload, endpoint:str, token: TokenModel) -> requests.Response | None:
+    return send_payload_to_rest_api(data, endpoint, token, 'Failed to send camera preview')
+    # headers = {'Content-Type': 'application/json;charset=UTF-8', 'Authorization': f'{token.token_type} {token.access_token}', 'Accept': 'application/json'}
+    # try:
+    #     response = requests.post(endpoint, headers=headers, verify=False, data=data.json().encode('utf-8'))
+    #     return response
+    # except Exception as e:
+    #     logger.error(f'Failed to send boat pass data: {e}')
+    #     return None

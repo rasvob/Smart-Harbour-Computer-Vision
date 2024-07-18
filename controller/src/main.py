@@ -10,8 +10,8 @@ from time import perf_counter_ns
 from src.rtsp_grabber import RTSPGrabber
 from app_log import AppLogger
 from src.settings import app_settings
-from src.api import send_health_check, send_frame, login_to_api, send_boat_pass_data    
-from src.models import BoatLengthEnum, LoginModel, TokenModel, BoatPassBase, BoundingBoxCreate, OcrResultBase, fake_boat_data, BoatPassCreate, BoatPassCreatePayload, ImagePayload
+from src.api import send_health_check, send_frame, login_to_api, send_boat_pass_data, send_camera_preview
+from src.models import BoatLengthEnum, LoginModel, PreviewImagePayload, TokenModel, BoatPassBase, BoundingBoxCreate, OcrResultBase, fake_boat_data, BoatPassCreate, BoatPassCreatePayload, ImagePayload
 import urllib3
 
 logger = AppLogger(__name__, logging._nameToLevel[app_settings.LOG_LEVEL]).get_logger()
@@ -24,10 +24,14 @@ def crop_frame_with_padding(frame, xtl, ytl, xbr, ybr, padding=5):
     xbr = min(1920, xbr+padding)
     return frame[int(ytl):int(ybr), int(xtl):int(xbr)]
 
+frame_counter = 0
+
 def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint, token):
+    global frame_counter
     start_full = perf_counter_ns()
     start = perf_counter_ns()
     ret, buffer = cv2.imencode('.jpeg', frame)
+    frame_counter += 1
     end = perf_counter_ns()
     diff = (end - start) / 1000000
     # logger.debug(f'Frame imencode time: {diff} ms')
@@ -50,6 +54,16 @@ def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint, token):
     logger.debug(f'Current time: {current_time}')
     file_name = f'CAM_{app_settings.CAMERA_ID}_{current_time.strftime("%Y-%m-%d_%H-%M-%S-%f")}.jpeg'
     # logger.debug(f'File name: {file_name}')
+
+    if frame_counter >= 8*1:
+        frame_counter = 0
+        logger.debug(f'Sending preview image to REST API')
+        image_data = PreviewImagePayload(image=encoded_image, camera_id=app_settings.CAMERA_ID)
+        ret:requests.Response = send_camera_preview(image_data, f'{app_settings.BACKEND_ENDPOINT_BASE}{app_settings.BACKEND_PATH_PREVIEW}', token)
+        if not ret:
+            logger.error('Failed to send preview image data')
+        elif ret.status_code != 200:
+            logger.error(f'Failed to send preview image data: {ret.status_code}, {ret.text}')
 
     start = perf_counter_ns()
     yolo_response = requests.post(yolo_endpoint, headers=headers, data=json.dumps(data), verify=False)
@@ -153,5 +167,5 @@ if __name__ == "__main__":
     # logger.debug(ret)
     # exit(0)
 
-    grabber = RTSPGrabber(ip='', port=0, channel=0, user='', password='', camera_id=app_settings.CAMERA_ID, data_dir='/app/data/frames')
-    grabber.start_capture(lambda x: process_frame(x, app_settings.YOLO_API_KEY, app_settings.YOLO_ENDPOINT, app_settings.OCR_ENDPOINT, token), override_url=app_settings.RTSP_ENDPOINT)
+    grabber = RTSPGrabber(ip=app_settings.RTSP_IP, port=app_settings.RTSP_PORT, channel=app_settings.RTSP_CHANNEL, user=app_settings.RTSP_USER, password=app_settings.RTSP_PASSWORD, camera_id=app_settings.CAMERA_ID, data_dir='/app/data/frames')
+    grabber.start_capture(lambda x: process_frame(x, app_settings.YOLO_API_KEY, app_settings.YOLO_ENDPOINT, app_settings.OCR_ENDPOINT, token), override_url=None)

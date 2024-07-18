@@ -18,8 +18,8 @@ services:
       - DEBUG=1
     volumes:
       - ./data:/app/data
-    depends_on:
-      - ffmpeg-streamer
+    # depends_on:
+    #   - ffmpeg-streamer
   
   ffmpeg-streamer:
     build:
