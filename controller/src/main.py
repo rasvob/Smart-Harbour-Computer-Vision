@@ -55,7 +55,7 @@ def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint, token):
     file_name = f'CAM_{app_settings.CAMERA_ID}_{current_time.strftime("%Y-%m-%d_%H-%M-%S-%f")}.jpeg'
     # logger.debug(f'File name: {file_name}')
 
-    if frame_counter >= 8*1:
+    if frame_counter >= 8*4:
         frame_counter = 0
         logger.debug(f'Sending preview image to REST API')
         image_data = PreviewImagePayload(image=encoded_image, camera_id=app_settings.CAMERA_ID)
