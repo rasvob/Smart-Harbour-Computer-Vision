@@ -22,5 +22,6 @@ class Settings(BaseSettings):
     BACKEND_USERNAME:str
     BACKEND_PASSWORD:str
     LOG_LEVEL:str = 'INFO'
+    WS_FRAME_MAX_COUNT:int
 
 app_settings = Settings()

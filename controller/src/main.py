@@ -55,7 +55,7 @@ def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint, token):
     file_name = f'CAM_{app_settings.CAMERA_ID}_{current_time.strftime("%Y-%m-%d_%H-%M-%S-%f")}.jpeg'
     # logger.debug(f'File name: {file_name}')
 
-    if frame_counter >= 8*4:
+    if frame_counter >= app_settings.WS_FRAME_MAX_COUNT:
         frame_counter = 0
         logger.debug(f'Sending preview image to REST API')
         image_data = PreviewImagePayload(image=encoded_image, camera_id=app_settings.CAMERA_ID)
@@ -115,7 +115,7 @@ def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint, token):
             timestamp=current_time,
             image_filename=file_name,
             raw_text=ocr_aggregated_text,
-            detected_identifier=None,
+            detected_identifier=ocr_aggregated_text,
             boat_length=BoatLengthEnum.pod_8m,
             bounding_boxes=yolo_results
         )
@@ -146,13 +146,25 @@ if __name__ == "__main__":
     res = send_health_check(app_settings.YOLO_HEALTH_ENDPOINT)
     logger.info(res)
 
+    if not res:
+        logger.error('YOLO is not available')
+        exit(1)
+
     logger.info('Sending health check to OCR')
     res = send_health_check(app_settings.OCR_HEALTH_ENDPOINT)
     logger.info(res)
 
+    if not res:
+        logger.error('OCR is not available')
+        exit(1)
+
     logger.info('Sending health check to REST API')
     res = send_health_check(app_settings.BACKEND_ENDPOINT_HEALTH)
     logger.info(res)
+
+    if not res:
+        logger.error('REST API is not available')
+        exit(1)
 
     credentials = LoginModel(username=app_settings.BACKEND_USERNAME, password=app_settings.BACKEND_PASSWORD)
     token = login_to_api(credentials, f'{app_settings.BACKEND_ENDPOINT_BASE}{app_settings.BACKEND_PATH_LOGIN}')
@@ -169,3 +181,4 @@ if __name__ == "__main__":
 
     grabber = RTSPGrabber(ip=app_settings.RTSP_IP, port=app_settings.RTSP_PORT, channel=app_settings.RTSP_CHANNEL, user=app_settings.RTSP_USER, password=app_settings.RTSP_PASSWORD, camera_id=app_settings.CAMERA_ID, data_dir='/app/data/frames')
     grabber.start_capture(lambda x: process_frame(x, app_settings.YOLO_API_KEY, app_settings.YOLO_ENDPOINT, app_settings.OCR_ENDPOINT, token), override_url=None)
+    exit(1)

@@ -23,7 +23,7 @@ def measure_time(func: Callable) -> Callable:
         return result
     return wrapper
 
-def send_health_check(endpoint:str) -> str:
+def send_health_check(endpoint:str) -> str | bool:
     try:
         response = requests.get(endpoint, verify=False)
     except Exception as e:
