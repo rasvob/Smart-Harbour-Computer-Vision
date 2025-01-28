@@ -8,7 +8,7 @@ services:
         - "rtx-controller:1.0.0-1"
     # If need to bash into container, uncomment the following line - then run `docker exec -it <container> /bin/bash`
     # command: tail -f /dev/null
-    restart: always
+    restart: no
     container_name: rtx-controller-1
     env_file:
       - .env.docker
@@ -18,27 +18,28 @@ services:
       - DEBUG=1
     volumes:
       - ./data:/app/data
+      - /data/public/pro0199/SmartHarbourIntegrationTest/day20240831/:/app/SmartHarbourIntegrationTest
     # depends_on:
     #   - ffmpeg-streamer
 
-  app2:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      tags:
-        - "rtx-controller:1.0.0-2"
-    # If need to bash into container, uncomment the following line - then run `docker exec -it <container> /bin/bash`
-    # command: tail -f /dev/null
-    restart: always
-    container_name: rtx-controller-2
-    env_file:
-      - .env.docker.2
-    networks:
-      - rtx-net
-    environment:
-      - DEBUG=1
-    volumes:
-      - ./data:/app/data
+  # app2:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     tags:
+  #       - "rtx-controller:1.0.0-2"
+  #   # If need to bash into container, uncomment the following line - then run `docker exec -it <container> /bin/bash`
+  #   # command: tail -f /dev/null
+  #   restart: always
+  #   container_name: rtx-controller-2
+  #   env_file:
+  #     - .env.docker.2
+  #   networks:
+  #     - rtx-net
+  #   environment:
+  #     - DEBUG=1
+  #   volumes:
+  #     - ./data:/app/data
     # depends_on:
     #   - ffmpeg-streamer
   

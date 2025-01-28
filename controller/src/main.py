@@ -7,7 +7,7 @@ import logging
 import datetime as dt
 from datetime import datetime
 from time import perf_counter_ns
-from src.rtsp_grabber import RTSPGrabber
+from src.rtsp_grabber import RTSPGrabber, TestScenarioGrabber
 from app_log import AppLogger
 from src.settings import app_settings
 from src.api import send_health_check, send_frame, login_to_api, send_boat_pass_data, send_camera_preview
@@ -53,8 +53,8 @@ def split_multiple_yolo_responses(yolo_response_json: object) -> list[object]:
 
     return sorted_single_boats_list
 
-def process_single_boat(yolo_response_json, frame, image_data, ocr_endpoint, token, current_time) -> None:
-    file_name = f'CAM_{app_settings.CAMERA_ID}_{current_time.strftime("%Y-%m-%d_%H-%M-%S-%f")}.jpeg'
+def process_single_boat(yolo_response_json, frame, image_data, ocr_endpoint, token, current_time, enforced_camera_id:int|None=None) -> None:
+    file_name = f'CAM_{enforced_camera_id if enforced_camera_id is not None else app_settings.CAMERA_ID}_{current_time.strftime("%Y-%m-%d_%H-%M-%S-%f")}.jpeg'
     ocr_texts = list()
     yolo_results = list()
     highest_confidence = 0
@@ -102,8 +102,9 @@ def process_single_boat(yolo_response_json, frame, image_data, ocr_endpoint, tok
             yolo_results.append(bounding_box)
 
     ocr_aggregated_text = ';'.join(ocr_texts)
+    logger.debug(f'enforced_camera_id: {enforced_camera_id}')
     boat_pass = BoatPassCreate(
-        camera_id=app_settings.CAMERA_ID,
+        camera_id=enforced_camera_id if enforced_camera_id is not None else app_settings.CAMERA_ID,
         timestamp=current_time,
         image_filename=file_name,
         raw_text=ocr_aggregated_text,
@@ -126,7 +127,7 @@ def process_single_boat(yolo_response_json, frame, image_data, ocr_endpoint, tok
 
 frame_counter = 0
 
-def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint, token):
+def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint, token, enforced_timestamp:datetime|None=None, enforced_camera_id:int|None=None):
     global frame_counter
     start_full = perf_counter_ns()
     start = perf_counter_ns()
@@ -151,6 +152,8 @@ def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint, token):
 
     data = {'image': encoded_image}
     current_time = datetime.now(dt.UTC)
+    if enforced_timestamp:
+        current_time = enforced_timestamp
     logger.debug(f'Current time: {current_time}')
     file_name = f'CAM_{app_settings.CAMERA_ID}_{current_time.strftime("%Y-%m-%d_%H-%M-%S-%f")}.jpeg'
     # logger.debug(f'File name: {file_name}')
@@ -158,7 +161,7 @@ def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint, token):
     if frame_counter >= app_settings.WS_FRAME_MAX_COUNT:
         frame_counter = 0
         logger.debug(f'Sending preview image to REST API')
-        image_data = PreviewImagePayload(image=encoded_image, camera_id=app_settings.CAMERA_ID)
+        image_data = PreviewImagePayload(image=encoded_image, camera_id=enforced_camera_id if enforced_camera_id is not None else app_settings.CAMERA_ID)
         ret:requests.Response = send_camera_preview(image_data, f'{app_settings.BACKEND_ENDPOINT_BASE}{app_settings.BACKEND_PATH_PREVIEW}', token)
         if not ret:
             logger.error('Failed to send preview image data')
@@ -179,15 +182,50 @@ def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint, token):
             yolo_response_jsons_list = split_multiple_yolo_responses(yolo_response_json)
 
         for yolo_response_json_single_boat in yolo_response_jsons_list:
-            payload = process_single_boat(yolo_response_json_single_boat, frame, image_data, ocr_endpoint, token, current_time)
+            payload = process_single_boat(yolo_response_json_single_boat, frame, image_data, ocr_endpoint, token, current_time, enforced_camera_id)
             payloads.append(payload)
 
+    # draw bounding boxes into the frame
+    # draw_bounding_boxes(payloads, frame, enforced_timestamp, enforced_camera_id)
 
     end_full = perf_counter_ns()
     diff = (end_full - start_full) / 1000000
     logger.info(f'Frame yolo+ocr time: {diff} ms')
 
     return True
+
+# fourcc = cv2.VideoWriter_fourcc(*'XVID')
+# camera1_video_writer = cv2.VideoWriter('/app/data/camera1.avi', fourcc, 4, (1920, 1088))
+# camera2_video_writer = cv2.VideoWriter('/app/data/camera2.avi', fourcc, 4, (1920, 1088))
+camera1_video_writer = None
+camera2_video_writer = None
+
+def draw_bounding_boxes(payloads: list[BoatPassCreatePayload], frame, enforced_timestamp, enforced_camera_id):
+    global camera1_video_file
+    global camera2_video_file
+    global counter
+
+    for payload in payloads:
+        for box in payload.boat_pass.bounding_boxes:
+            xtl = int(box.left)
+            ytl = int(box.top)
+            xbr = int(box.right)
+            ybr = int(box.bottom)
+            cv2.rectangle(frame, (xtl, ytl), (xbr, ybr), (0, 255, 0), 2)
+            cv2.putText(frame, f'boat (conf={round(box.confidence*100, 1)} %)', (xtl, ytl-5), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            for ocr_result in box.ocr_results:
+                xtl = int(ocr_result.left) + int(box.left)
+                ytl = int(ocr_result.top) + int(box.top)
+                xbr = int(ocr_result.right) + int(box.left)
+                ybr = int(ocr_result.bottom) + int(box.top)
+                cv2.rectangle(frame, (xtl, ytl), (xbr, ybr), (255, 0, 0), 2)
+                cv2.putText(frame, f'{ocr_result.text} (conf={round(ocr_result.confidence*100, 1)} %)', (xtl, ytl-5), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+    
+    # cv2.putText(frame, f'Timestamp: {enforced_timestamp}', (10, 1000), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+    if enforced_camera_id == 1:
+        camera1_video_writer.write(frame)
+    else:
+        camera2_video_writer.write(frame)
 
 if __name__ == "__main__":
     # load_dotenv()
@@ -227,12 +265,18 @@ if __name__ == "__main__":
         logger.error('AUTH ERROR - Token not received')
         exit(1)
 
+    grabber = TestScenarioGrabber(ip=app_settings.RTSP_IP, port=app_settings.RTSP_PORT, channel=app_settings.RTSP_CHANNEL, user=app_settings.RTSP_USER, password=app_settings.RTSP_PASSWORD, camera_id=app_settings.CAMERA_ID, data_dir='/app/data/frames')
+    grabber.run(lambda x, enforced_timestamp, enforced_camera_id: process_frame(x, app_settings.YOLO_API_KEY, app_settings.YOLO_ENDPOINT, app_settings.OCR_ENDPOINT, token, enforced_timestamp=enforced_timestamp, enforced_camera_id=enforced_camera_id))
+    # camera1_video_writer.release()
+    # camera2_video_writer.release()
+    exit(1)
+
     # fake_data = fake_boat_data()
     # logger.debug(fake_data)
     # ret = send_boat_pass_data(fake_data, f'{app_settings.BACKEND_ENDPOINT_BASE}{app_settings.BACKEND_PATH_BOAT_PASS}', token)
     # logger.debug(ret)
     # exit(0)
 
-    grabber = RTSPGrabber(ip=app_settings.RTSP_IP, port=app_settings.RTSP_PORT, channel=app_settings.RTSP_CHANNEL, user=app_settings.RTSP_USER, password=app_settings.RTSP_PASSWORD, camera_id=app_settings.CAMERA_ID, data_dir='/app/data/frames')
-    grabber.start_capture(lambda x: process_frame(x, app_settings.YOLO_API_KEY, app_settings.YOLO_ENDPOINT, app_settings.OCR_ENDPOINT, token), override_url=None)
-    exit(1)
+    # grabber = RTSPGrabber(ip=app_settings.RTSP_IP, port=app_settings.RTSP_PORT, channel=app_settings.RTSP_CHANNEL, user=app_settings.RTSP_USER, password=app_settings.RTSP_PASSWORD, camera_id=app_settings.CAMERA_ID, data_dir='/app/data/frames')
+    # grabber.start_capture(lambda x: process_frame(x, app_settings.YOLO_API_KEY, app_settings.YOLO_ENDPOINT, app_settings.OCR_ENDPOINT, token), override_url=None)
+    # exit(1)
