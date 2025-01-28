@@ -24,6 +24,106 @@ def crop_frame_with_padding(frame, xtl, ytl, xbr, ybr, padding=5):
     xbr = min(1920, xbr+padding)
     return frame[int(ytl):int(ybr), int(xtl):int(xbr)]
 
+def split_multiple_yolo_responses(yolo_response_json: object) -> list[object]:
+    """
+        This function parse relative bounding boxes for each boat and create database entries.
+        If there is more than one bounding box for a boat try to merge it if there is overlap of bounding boxes or maximal gap between bounding boxes is less than CONFIG.MAX_GAP_BETWEEN_BOXES.
+        
+    """
+    yolo_response_jsons_list = list()
+    for i in range(yolo_response_json['boats_detected']):
+        yolo_response_json_single_boat = {
+            'boats_detected': 1,
+            'detection_boxes': [yolo_response_json['detection_boxes'][i]]
+        }
+        yolo_response_jsons_list.append(yolo_response_json_single_boat)
+
+    logger.debug(f'Yolo response jsons list: {yolo_response_jsons_list}')
+    sorted_single_boats_list = list(sorted(yolo_response_jsons_list, key=lambda x: x['detection_boxes'][0][0]))
+    i = 0
+    while i < (len(sorted_single_boats_list) - 1):
+        #app_config.MAX_GAP_BETWEEN_CONTINOUES_BOUNDING_BOXES
+        if sorted_single_boats_list[i]['detection_boxes'][0][2] + 50 > sorted_single_boats_list[i + 1]['detection_boxes'][0][0]:
+            # merge boxes
+            sorted_single_boats_list[i]['detection_boxes'].append(sorted_single_boats_list[i + 1]['detection_boxes'][0])
+            sorted_single_boats_list[i]['boats_detected'] += 1
+            sorted_single_boats_list.pop(i + 1)
+        else:
+            i += 1
+
+    return sorted_single_boats_list
+
+def process_single_boat(yolo_response_json, frame, image_data, ocr_endpoint, token, current_time) -> None:
+    file_name = f'CAM_{app_settings.CAMERA_ID}_{current_time.strftime("%Y-%m-%d_%H-%M-%S-%f")}.jpeg'
+    ocr_texts = list()
+    yolo_results = list()
+    highest_confidence = 0
+    detected_identifier = ''
+    headers = {'Content-Type': 'application/json'}
+
+    for i in range(yolo_response_json['boats_detected']):            
+        bounding_box = BoundingBoxCreate(
+            left=yolo_response_json['detection_boxes'][i][0],
+            top=yolo_response_json['detection_boxes'][i][1],
+            right=yolo_response_json['detection_boxes'][i][2],
+            bottom=yolo_response_json['detection_boxes'][i][3],
+            confidence=yolo_response_json['detection_boxes'][i][4],
+            class_identifier=yolo_response_json['detection_boxes'][i][5],
+            ocr_results=[]
+        )
+        
+        sub_frame = crop_frame_with_padding(frame, 
+                                            xtl=bounding_box.left, 
+                                            ytl=bounding_box.top, 
+                                            xbr=bounding_box.right, 
+                                            ybr=bounding_box.bottom)
+        _, buffer = cv2.imencode('.jpg', sub_frame)
+        data_cropped_image = {'image': base64.b64encode(buffer).decode('utf-8')}
+        ocr_response = requests.post(ocr_endpoint, headers=headers, data=json.dumps(data_cropped_image), verify=False)
+        logger.debug(f'OCR response: {ocr_response.status_code};{ocr_response.text}')
+        ocr_response_json = json.loads(ocr_response.text)
+
+        ocr_recognitions = list()
+        if 'ocr_recognitions' in ocr_response_json:
+            for ocr_partial_result in ocr_response_json['ocr_recognitions']:
+                ocr_recognitions.append(OcrResultBase(
+                    left=ocr_partial_result[0][0][0],
+                    top=ocr_partial_result[0][0][1],
+                    right=ocr_partial_result[0][2][0],
+                    bottom=ocr_partial_result[0][2][1],
+                    text=ocr_partial_result[1],
+                    confidence=ocr_partial_result[2]
+                ))
+                if ocr_partial_result[2] > highest_confidence:
+                    highest_confidence = ocr_partial_result[2]
+                    detected_identifier = ocr_partial_result[1]
+            ocr_texts.append(ocr_response_json['text'])
+            bounding_box.ocr_results = ocr_recognitions
+            yolo_results.append(bounding_box)
+
+    ocr_aggregated_text = ';'.join(ocr_texts)
+    boat_pass = BoatPassCreate(
+        camera_id=app_settings.CAMERA_ID,
+        timestamp=current_time,
+        image_filename=file_name,
+        raw_text=ocr_aggregated_text,
+        detected_identifier=detected_identifier,
+        boat_length=BoatLengthEnum.pod_8m,
+        bounding_boxes=yolo_results
+    )
+    payload = BoatPassCreatePayload(boat_pass=boat_pass, image_data=image_data)
+    logger.debug(f'BoatPassCreate results: {boat_pass}')
+
+    # send results to REST API
+    ret:requests.Response = send_boat_pass_data(payload, f'{app_settings.BACKEND_ENDPOINT_BASE}{app_settings.BACKEND_PATH_BOAT_PASS}', token)
+
+    if not ret:
+        logger.error('Failed to send boat pass data')
+    elif ret.status_code != 200:
+        logger.error(f'Failed to send boat pass data: {ret.status_code}, {ret.text}')
+
+    return payload
+
 frame_counter = 0
 
 def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint, token):
@@ -65,69 +165,23 @@ def process_frame(frame, yolo_api_key, yolo_endpoint, ocr_endpoint, token):
         elif ret.status_code != 200:
             logger.error(f'Failed to send preview image data: {ret.status_code}, {ret.text}')
 
+    payloads = list()
     start = perf_counter_ns()
     yolo_response = requests.post(yolo_endpoint, headers=headers, data=json.dumps(data), verify=False)
     logger.debug(f'YOLO response: {yolo_response.text}')
     yolo_response_json = json.loads(yolo_response.text)
     if yolo_response_json['boats_detected'] > 0:
-        ocr_texts = list()
-        yolo_results = list()
-        for i in range(yolo_response_json['boats_detected']):            
-            bounding_box = BoundingBoxCreate(
-                left=yolo_response_json['detection_boxes'][i][0],
-                top=yolo_response_json['detection_boxes'][i][1],
-                right=yolo_response_json['detection_boxes'][i][2],
-                bottom=yolo_response_json['detection_boxes'][i][3],
-                confidence=yolo_response_json['detection_boxes'][i][4],
-                class_identifier=yolo_response_json['detection_boxes'][i][5],
-                ocr_results=[]
-            )
-            
-            sub_frame = crop_frame_with_padding(frame, 
-                                                xtl=bounding_box.left, 
-                                                ytl=bounding_box.top, 
-                                                xbr=bounding_box.right, 
-                                                ybr=bounding_box.bottom)
-            _, buffer = cv2.imencode('.jpg', sub_frame)
-            data_cropped_image = {'image': base64.b64encode(buffer).decode('utf-8')}
-            ocr_response = requests.post(ocr_endpoint, headers=headers, data=json.dumps(data_cropped_image), verify=False)
-            logger.debug(f'OCR response: {ocr_response.status_code};{ocr_response.text}')
-            ocr_response_json = json.loads(ocr_response.text)
-
-            ocr_recognitions = list()
-            if 'ocr_recognitions' in ocr_response_json:
-                for ocr_partial_result in ocr_response_json['ocr_recognitions']:
-                    ocr_recognitions.append(OcrResultBase(
-                        left=ocr_partial_result[0][0][0],
-                        top=ocr_partial_result[0][0][1],
-                        right=ocr_partial_result[0][2][0],
-                        bottom=ocr_partial_result[0][2][1],
-                        text=ocr_partial_result[1],
-                        confidence=ocr_partial_result[2]
-                    ))
-                ocr_texts.append(ocr_response_json['text'])
-                bounding_box.ocr_results = ocr_recognitions
-                yolo_results.append(bounding_box)
-
-        ocr_aggregated_text = ''.join(ocr_texts)
-        boat_pass = BoatPassCreate(
-            camera_id=app_settings.CAMERA_ID,
-            timestamp=current_time,
-            image_filename=file_name,
-            raw_text=ocr_aggregated_text,
-            detected_identifier=ocr_aggregated_text,
-            boat_length=BoatLengthEnum.pod_8m,
-            bounding_boxes=yolo_results
-        )
         image_data = ImagePayload(image=encoded_image)
-        payload = BoatPassCreatePayload(boat_pass=boat_pass, image_data=image_data)
-        logger.debug(f'BoatPassCreate results: {boat_pass}')
-        ret:requests.Response = send_boat_pass_data(payload, f'{app_settings.BACKEND_ENDPOINT_BASE}{app_settings.BACKEND_PATH_BOAT_PASS}', token)
 
-        if not ret:
-            logger.error('Failed to send boat pass data')
-        elif ret.status_code != 200:
-            logger.error(f'Failed to send boat pass data: {ret.status_code}, {ret.text}')
+        if yolo_response_json['boats_detected'] == 1:
+            yolo_response_jsons_list = [yolo_response_json]
+        else:
+            yolo_response_jsons_list = split_multiple_yolo_responses(yolo_response_json)
+
+        for yolo_response_json_single_boat in yolo_response_jsons_list:
+            payload = process_single_boat(yolo_response_json_single_boat, frame, image_data, ocr_endpoint, token, current_time)
+            payloads.append(payload)
+
 
     end_full = perf_counter_ns()
     diff = (end_full - start_full) / 1000000
